@@ -1,4 +1,4 @@
-# Revenue Tax Split Calculator
+# Tax Calculator
 
 A Python command-line application that helps Irish workers proportionally allocate annual income and tax credits across multiple jobs based on hours worked and hourly pay. Designed to support accurate Revenue profile updates for multi-employment scenarios.
 
