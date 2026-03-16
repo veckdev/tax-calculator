@@ -1,32 +1,69 @@
-# Tax Calculator
+# tax-calculator
 
-A Python command-line application that helps Irish workers proportionally allocate annual income and tax credits across multiple jobs based on hours worked and hourly pay. Designed to support accurate Revenue profile updates for multi-employment scenarios.
+Command-line tool for Irish PAYE workers with multiple employments.
 
-## Features
-
-- Accepts total annual income and tax credits
-- Collects job details (company name, weekly hours, hourly rate)
-- Estimates annual income per job
-- Calculates proportional income distribution
-- Allocates tax credits based on workload share
-- Outputs a clear terminal summary
-
-## Example
-
-Scenario:
-
-- Job A: 20 hours/week at €15/hour  
-- Job B: 30 hours/week at €12/hour  
-- Annual income: €30,000  
-- Tax credits: €3,300  
-
-The program calculates the fair distribution of income and tax credits across both employments.
+Splits tax credits, PAYE rate band and USC bands proportionally across jobs — mirrors what Revenue expects on ros.ie — and estimates your year-end refund or underpayment based on YTD figures.
 
 ## Requirements
 
-- Python 3.x
+Python 3.10+. No external dependencies.
 
-## Run
+## Usage
 
 ```bash
-python tax_split_calculator.py
+python3 main.py
+```
+
+Pick from the menu:
+
+```
+1. Split tax credits across jobs      (ros.ie allocation)
+2. Estimate year-end refund / owed    (YTD figures needed)
+3. Both
+0. Quit
+```
+
+**Option 1** asks for jobs, tax credits, annual gross income, hours/week and hourly rate per job. Outputs rate band, tax credits and USC band split to enter on ros.ie.
+
+**Option 2** asks for jobs, tax credits and YTD figures per job. Find these on ros.ie → PAYE Services → Manage your tax → Overview → select employment → "Pay and tax details Year To Date (YTD)". Outputs estimated refund or amount owed.
+
+**Option 3** combines both.
+
+## Running tests
+
+```bash
+python3 -m unittest discover -s tests -v
+```
+
+## Project structure
+
+```
+tax-calculator/
+├── main.py               # CLI — inputs and output formatting
+├── tax_calculator.py     # Core logic — tax calculations and validation
+├── requirements.txt
+├── CHANGELOG.md
+├── LICENSE
+└── tests/
+    ├── __init__.py
+    └── test_tax_calculator.py
+```
+
+## Tax rates (2025)
+
+| Tax | Details |
+|-----|---------|
+| PAYE | 20% up to €44,000 / 40% above |
+| USC | 0.5% → 2% → 3% → 8% |
+| PRSI (Class A) | 4.2% from Oct 2025 |
+
+## Contributing
+
+Keep logic in `tax_calculator.py` and interface in `main.py`. Update tests for any calculation changes and run them before opening a pull request. See `CHANGELOG.md` for version history.
+
+## License
+
+[MIT](LICENSE)
+
+> WARNING: This tool provides estimates only. Always verify your allocation on
+> [ros.ie](https://www.ros.ie) and consult a tax advisor for official advice.
