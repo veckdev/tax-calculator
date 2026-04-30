@@ -11,9 +11,18 @@ Run with: python3 main.py
 """
 
 from tax_calculator import (
-    Job, YTDData, SplitResult, RefundSummary,
-    calculate_split, calculate_refund,
+    Job,
+    YTDData,
+    SplitResult,
+    RefundSummary,
+    calculate_split,
+    calculate_refund,
 )
+
+import sys
+import io
+from datetime import date
+from contextlib import contextmanager
 
 # terminal width — all rows and borders are built around this
 W = 58
@@ -65,6 +74,7 @@ def result_label(amount: float) -> str:
 
 # input helpers
 
+
 def ask_float(prompt: str, allow_zero: bool = False) -> float:
     """Keeps asking until the user enters a valid float."""
     while True:
@@ -114,11 +124,12 @@ def ask_menu() -> str:
 
 # input collection
 
+
 def collect_base_info() -> tuple[int, float]:
     """Number of jobs and tax credits — always required."""
     section("General Information")
     blank()
-    num_jobs    = ask_int("Number of jobs              : ")
+    num_jobs = ask_int("Number of jobs              : ")
     tax_credits = ask_float("Annual tax credits (€)      : ")
     return num_jobs, tax_credits
 
@@ -131,11 +142,15 @@ def collect_jobs_basic(num_jobs: int) -> list[Job]:
     for i in range(1, num_jobs + 1):
         blank()
         print(f"  ── Job #{i} ──")
-        name  = ask_str("  Company name                : ")
+        name = ask_str("  Company name                : ")
         hours = ask_float("  Hours per week              : ")
-        rate  = ask_float("  Hourly rate (€)             : ")
-        job   = Job(company_name=name, hours_per_week=hours,
-                    salary_per_hour=rate, ytd=YTDData(0, 0, 0, 0))
+        rate = ask_float("  Hourly rate (€)             : ")
+        job = Job(
+            company_name=name,
+            hours_per_week=hours,
+            salary_per_hour=rate,
+            ytd=YTDData(0, 0, 0, 0),
+        )
         print(f"  → Est. annual income: {eur(job.estimated_annual_income)}")
         jobs.append(job)
 
@@ -152,15 +167,15 @@ def collect_ytd(index: int, name: str) -> YTDData:
     print(f"    3. Click on this employment in the left sidebar")
     print(f"    4. Look at 'Pay and tax details Year To Date (YTD)'")
     blank()
-    gross     = ask_float("    Gross pay YTD (€)           : ", allow_zero=True)
+    gross = ask_float("    Gross pay YTD (€)           : ", allow_zero=True)
     paye_paid = ask_float("    Income Tax paid YTD (€)     : ", allow_zero=True)
-    usc_paid  = ask_float("    USC paid YTD (€)            : ", allow_zero=True)
+    usc_paid = ask_float("    USC paid YTD (€)            : ", allow_zero=True)
     prsi_paid = ask_float("    Employee PRSI paid YTD (€)  : ", allow_zero=True)
     return YTDData(
-        gross_pay       = gross,
-        income_tax_paid = paye_paid,
-        usc_paid        = usc_paid,
-        prsi_paid       = prsi_paid,
+        gross_pay=gross,
+        income_tax_paid=paye_paid,
+        usc_paid=usc_paid,
+        prsi_paid=prsi_paid,
     )
 
 
@@ -178,22 +193,28 @@ def collect_jobs_with_ytd(num_jobs: int, need_proportion: bool = False) -> list[
 
         if need_proportion:
             hours = ask_float("  Hours per week              : ")
-            rate  = ask_float("  Hourly rate (€)             : ")
-            job   = Job(company_name=name, hours_per_week=hours,
-                        salary_per_hour=rate, ytd=YTDData(0, 0, 0, 0))
+            rate = ask_float("  Hourly rate (€)             : ")
+            job = Job(
+                company_name=name,
+                hours_per_week=hours,
+                salary_per_hour=rate,
+                ytd=YTDData(0, 0, 0, 0),
+            )
             print(f"  → Est. annual income: {eur(job.estimated_annual_income)}")
         else:
             hours, rate = 1.0, 1.0  # placeholder — not used in refund calculation
 
         ytd = collect_ytd(i, name)
-        job = Job(company_name=name, hours_per_week=hours,
-                  salary_per_hour=rate, ytd=ytd)
+        job = Job(
+            company_name=name, hours_per_week=hours, salary_per_hour=rate, ytd=ytd
+        )
         jobs.append(job)
 
     return jobs
 
 
 # report sections
+
 
 def print_paye_tab(split: SplitResult) -> None:
     """Section A — rate band and tax credits to enter on ros.ie."""
@@ -205,7 +226,7 @@ def print_paye_tab(split: SplitResult) -> None:
         print(f"  Job #{i}  —  {a.job.company_name}")
         divider("·")
         row("Rate band (20%)", eur(a.allocated_rate_band))
-        row("Tax credits",     eur(a.allocated_tax_credits))
+        row("Tax credits", eur(a.allocated_tax_credits))
 
     blank()
     print(f"  {'All income above rate band is taxable at 40%':>{W}}")
@@ -237,19 +258,19 @@ def print_refund_section(refund: RefundSummary) -> None:
     row("Total gross YTD", eur(refund.total_gross))
     blank()
 
-    row("PAYE paid YTD",         eur(refund.total_paye_paid))
+    row("PAYE paid YTD", eur(refund.total_paye_paid))
     row("PAYE due on YTD gross", eur(refund.paye_due))
-    row("→ PAYE result",         result_label(refund.paye_result))
+    row("→ PAYE result", result_label(refund.paye_result))
     blank()
 
-    row("USC paid YTD",          eur(refund.total_usc_paid))
-    row("USC due on YTD gross",  eur(refund.usc_due))
-    row("→ USC result",          result_label(refund.usc_result))
+    row("USC paid YTD", eur(refund.total_usc_paid))
+    row("USC due on YTD gross", eur(refund.usc_due))
+    row("→ USC result", result_label(refund.usc_result))
     blank()
 
-    row("PRSI paid YTD",         eur(refund.total_prsi_paid))
+    row("PRSI paid YTD", eur(refund.total_prsi_paid))
     row("PRSI due on YTD gross", eur(refund.prsi_due))
-    row("→ PRSI result",         result_label(refund.prsi_result))
+    row("→ PRSI result", result_label(refund.prsi_result))
     blank()
 
     divider()
@@ -262,43 +283,80 @@ def print_refund_section(refund: RefundSummary) -> None:
 
 # menu flows
 
+
+@contextmanager
+def tee_stdout():
+    """Prints to screen AND captures output at the same time."""
+    buf = io.StringIO()
+
+    class Tee:
+        def write(self, s):
+            sys.__stdout__.write(s)
+            buf.write(s)
+
+        def flush(self):
+            sys.__stdout__.flush()
+
+    old = sys.stdout
+    sys.stdout = Tee()
+    try:
+        yield buf
+    finally:
+        sys.stdout = old
+
+
+def ask_save(content: str) -> None:
+    """Asks the user if they want to save, and writes a .txt file."""
+    blank()
+    answer = input("  Save results to file? (y/n): ").strip().lower()
+    if answer == "y":
+        filename = f"tax_result_{date.today()}.txt"
+        with open(filename, "w", encoding="utf-8") as f:
+            f.write(content)
+        print(f"\n  ✓  Saved to: {filename}")
+        blank()
+
+
 def flow_split() -> None:
-    """Option 1 — split tax credits across jobs only."""
     num_jobs, tax_credits = collect_base_info()
     annual_income = ask_float("Annual gross income (€)     : ")
-    jobs  = collect_jobs_basic(num_jobs)
+    jobs = collect_jobs_basic(num_jobs)
     split = calculate_split(jobs, annual_income, tax_credits)
 
     input("\n  Press Enter to see results...")
-    header("Results")
-    print_paye_tab(split)
-    print_usc_tab(split)
+    with tee_stdout() as buf:
+        header("Results")
+        print_paye_tab(split)
+        print_usc_tab(split)
+    ask_save(buf.getvalue())
 
 
 def flow_refund() -> None:
-    """Option 2 — year-end estimate only. No hours/rate needed."""
     num_jobs, tax_credits = collect_base_info()
-    jobs   = collect_jobs_with_ytd(num_jobs, need_proportion=False)
+    jobs = collect_jobs_with_ytd(num_jobs, need_proportion=False)
     refund = calculate_refund(jobs, tax_credits)
 
     input("\n  Press Enter to see results...")
-    header("Results")
-    print_refund_section(refund)
+    with tee_stdout() as buf:
+        header("Results")
+        print_refund_section(refund)
+    ask_save(buf.getvalue())
 
 
 def flow_both() -> None:
-    """Option 3 — split + year-end estimate."""
     num_jobs, tax_credits = collect_base_info()
     annual_income = ask_float("Annual gross income (€)     : ")
-    jobs   = collect_jobs_with_ytd(num_jobs, need_proportion=True)
-    split  = calculate_split(jobs, annual_income, tax_credits)
+    jobs = collect_jobs_with_ytd(num_jobs, need_proportion=True)
+    split = calculate_split(jobs, annual_income, tax_credits)
     refund = calculate_refund(jobs, tax_credits)
 
     input("\n  Press Enter to see results...")
-    header("Results")
-    print_paye_tab(split)
-    print_usc_tab(split)
-    print_refund_section(refund)
+    with tee_stdout() as buf:
+        header("Results")
+        print_paye_tab(split)
+        print_usc_tab(split)
+        print_refund_section(refund)
+    ask_save(buf.getvalue())
 
 
 def main() -> bool:
