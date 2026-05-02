@@ -11,6 +11,7 @@ Tax year: 2026
 """
 
 from dataclasses import dataclass, field
+from typing import Optional
 
 
 # 2026 Irish tax constants (Budget 2026, effective 1 Jan 2026)
@@ -53,21 +54,35 @@ class YTDData:
 
 @dataclass
 class Job:
-    """A single employment."""
+    """A single employment.
+
+    Income can be specified as hourly (hours_per_week + salary_per_hour)
+    or as a direct annual_salary. One of the two must be provided when
+    the job is used in calculate_split(); neither is required for
+    calculate_refund() which uses YTD gross instead.
+    """
     company_name:    str
-    hours_per_week:  float
-    salary_per_hour: float
     ytd:             YTDData
+    hours_per_week:  Optional[float] = None
+    salary_per_hour: Optional[float] = None
+    annual_salary:   Optional[float] = None
     estimated_annual_income: float = field(init=False)
 
     def __post_init__(self) -> None:
-        if not isinstance(self.hours_per_week, (int, float)):
-            raise TypeError(f"'hours_per_week' must be a number, not text.")
-        if not isinstance(self.salary_per_hour, (int, float)):
-            raise TypeError(f"'salary_per_hour' must be a number, not text.")
-        self.estimated_annual_income = (
-            self.hours_per_week * self.salary_per_hour * WEEKS_PER_YEAR
-        )
+        if self.annual_salary is not None:
+            if not isinstance(self.annual_salary, (int, float)):
+                raise TypeError("'annual_salary' must be a number, not text.")
+            self.estimated_annual_income = float(self.annual_salary)
+        elif self.hours_per_week is not None and self.salary_per_hour is not None:
+            if not isinstance(self.hours_per_week, (int, float)):
+                raise TypeError("'hours_per_week' must be a number, not text.")
+            if not isinstance(self.salary_per_hour, (int, float)):
+                raise TypeError("'salary_per_hour' must be a number, not text.")
+            self.estimated_annual_income = (
+                self.hours_per_week * self.salary_per_hour * WEEKS_PER_YEAR
+            )
+        else:
+            self.estimated_annual_income = 0.0
 
 
 @dataclass
@@ -177,8 +192,6 @@ def _validate_jobs(jobs: list[Job]) -> None:
     for i, job in enumerate(jobs, 1):
         label = f"Job #{i}"
         _require_str(job.company_name, f"{label} company_name")
-        _require_positive_float(job.hours_per_week,  f"{label} hours_per_week")
-        _require_positive_float(job.salary_per_hour, f"{label} salary_per_hour")
         _require_non_negative_float(job.ytd.gross_pay,       f"{label} YTD gross_pay")
         _require_non_negative_float(job.ytd.income_tax_paid, f"{label} YTD income_tax_paid")
         _require_non_negative_float(job.ytd.usc_paid,        f"{label} YTD usc_paid")
@@ -255,6 +268,8 @@ def calculate_split(
     _require_positive_float(tax_credits, "tax_credits")
 
     total_estimated = sum(j.estimated_annual_income for j in jobs)
+    if total_estimated <= 0:
+        raise ValueError("Each job must have hours/rate or annual_salary set to split tax credits.")
     allocations: list[JobAllocation] = []
 
     for job in jobs:

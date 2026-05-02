@@ -19,10 +19,12 @@ from tax_calculator import (
 
 # helpers
 
-def make_job(name="Acme Ltd", hours=20.0, rate=15.0, ytd=None) -> Job:
+def make_job(name="Acme Ltd", hours=20.0, rate=15.0, ytd=None, annual_salary=None) -> Job:
     if ytd is None:
         ytd = YTDData(gross_pay=0, income_tax_paid=0, usc_paid=0, prsi_paid=0)
-    return Job(company_name=name, hours_per_week=hours, salary_per_hour=rate, ytd=ytd)
+    if annual_salary is not None:
+        return Job(company_name=name, ytd=ytd, annual_salary=annual_salary)
+    return Job(company_name=name, ytd=ytd, hours_per_week=hours, salary_per_hour=rate)
 
 
 def make_ytd(gross=0.0, paye=0.0, usc=0.0, prsi=0.0) -> YTDData:
@@ -38,6 +40,20 @@ class TestJobEstimatedIncome(unittest.TestCase):
     def test_estimated_annual_income_part_time(self):
         job = make_job(hours=20, rate=14.80)
         self.assertAlmostEqual(job.estimated_annual_income, 20 * 14.80 * 52, places=2)
+
+    def test_annual_salary_sets_estimated_income(self):
+        job = make_job(annual_salary=50_000)
+        self.assertAlmostEqual(job.estimated_annual_income, 50_000.0, places=2)
+
+    def test_annual_salary_split_proportions(self):
+        jobs = [make_job("A", annual_salary=60_000), make_job("B", annual_salary=40_000)]
+        result = calculate_split(jobs, tax_credits=5000)
+        self.assertAlmostEqual(result.allocations[0].proportion, 0.60, places=4)
+        self.assertAlmostEqual(result.allocations[1].proportion, 0.40, places=4)
+
+    def test_annual_salary_rejects_text(self):
+        with self.assertRaises(TypeError):
+            make_job(annual_salary="fifty thousand")
 
 
 class TestJobTypeGuards(unittest.TestCase):
