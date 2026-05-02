@@ -243,9 +243,8 @@ def _paye_on_income(gross: float, credits: float) -> float:
 # public functions
 
 def calculate_split(
-    jobs:          list[Job],
-    annual_income: float,
-    tax_credits:   float,
+    jobs:        list[Job],
+    tax_credits: float,
 ) -> SplitResult:
     """
     Splits PAYE rate band, tax credits and USC bands across jobs.
@@ -253,8 +252,7 @@ def calculate_split(
     Returns what the user should enter on ros.ie → Divide tax credits.
     """
     _validate_jobs(jobs)
-    _require_positive_float(annual_income, "annual_income")
-    _require_positive_float(tax_credits,   "tax_credits")
+    _require_positive_float(tax_credits, "tax_credits")
 
     total_estimated = sum(j.estimated_annual_income for j in jobs)
     allocations: list[JobAllocation] = []
@@ -266,12 +264,12 @@ def calculate_split(
             proportion            = proportion,
             allocated_rate_band   = PAYE_STANDARD_RATE_BAND * proportion,
             allocated_tax_credits = tax_credits * proportion,
-            usc_bands             = _split_usc_bands(annual_income, proportion),
+            usc_bands             = _split_usc_bands(total_estimated, proportion),
         ))
 
     return SplitResult(
         jobs                = jobs,
-        total_annual_income = annual_income,
+        total_annual_income = total_estimated,
         total_tax_credits   = tax_credits,
         allocations         = allocations,
     )

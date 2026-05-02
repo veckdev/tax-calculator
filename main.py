@@ -319,9 +319,8 @@ def ask_save(content: str) -> None:
 
 def flow_split() -> None:
     num_jobs, tax_credits = collect_base_info()
-    annual_income = ask_float("Annual gross income (€)     : ")
     jobs = collect_jobs_basic(num_jobs)
-    split = calculate_split(jobs, annual_income, tax_credits)
+    split = calculate_split(jobs, tax_credits)
 
     input("\n  Press Enter to see results...")
     with tee_stdout() as buf:
@@ -345,9 +344,8 @@ def flow_refund() -> None:
 
 def flow_both() -> None:
     num_jobs, tax_credits = collect_base_info()
-    annual_income = ask_float("Annual gross income (€)     : ")
     jobs = collect_jobs_with_ytd(num_jobs, need_proportion=True)
-    split = calculate_split(jobs, annual_income, tax_credits)
+    split = calculate_split(jobs, tax_credits)
     refund = calculate_refund(jobs, tax_credits)
 
     input("\n  Press Enter to see results...")

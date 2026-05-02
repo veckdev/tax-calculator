@@ -63,7 +63,7 @@ class TestCalculateSplitProportions(unittest.TestCase):
 
     def setUp(self):
         self.jobs = [make_job("Allpro", 24, 14.80), make_job("Cagney", 20, 14.80)]
-        self.result = calculate_split(self.jobs, annual_income=44000, tax_credits=5000)
+        self.result = calculate_split(self.jobs, tax_credits=5000)
 
     def test_proportions_are_correct(self):
         self.assertAlmostEqual(self.result.allocations[0].proportion, 24 / 44, places=4)
@@ -86,11 +86,10 @@ class TestCalculateSplitProportions(unittest.TestCase):
         total = sum(a.allocated_tax_credits for a in self.result.allocations)
         self.assertAlmostEqual(total, 5000.00, places=2)
 
-    def test_usc_bands_sum_to_proportional_income(self):
+    def test_usc_bands_sum_to_estimated_income(self):
         for alloc in self.result.allocations:
             band_total = sum(b.annual_amount for b in alloc.usc_bands)
-            expected = 44000 * alloc.proportion
-            self.assertAlmostEqual(band_total, expected, places=2)
+            self.assertAlmostEqual(band_total, alloc.job.estimated_annual_income, places=2)
 
 
 class TestPAYE(unittest.TestCase):
@@ -178,36 +177,28 @@ class TestValidation(unittest.TestCase):
 
     def test_split_raises_on_empty_jobs(self):
         with self.assertRaisesRegex(ValueError, "At least one job"):
-            calculate_split([], 44000, 5000)
+            calculate_split([], 5000)
 
     def test_refund_raises_on_empty_jobs(self):
         with self.assertRaisesRegex(ValueError, "At least one job"):
             calculate_refund([], 5000)
 
-    def test_split_raises_on_zero_income(self):
-        with self.assertRaises(ValueError):
-            calculate_split([make_job()], annual_income=0, tax_credits=5000)
-
     def test_split_raises_on_negative_credits(self):
         with self.assertRaises(ValueError):
-            calculate_split([make_job()], annual_income=44000, tax_credits=-100)
+            calculate_split([make_job()], tax_credits=-100)
 
     def test_refund_raises_on_negative_ytd(self):
         jobs = [make_job(ytd=make_ytd(gross=-1))]
         with self.assertRaises(ValueError):
             calculate_refund(jobs, tax_credits=5000)
 
-    def test_split_raises_on_text_in_income(self):
-        with self.assertRaises((TypeError, ValueError)):
-            calculate_split([make_job()], annual_income="lots", tax_credits=5000)
-
     def test_split_raises_on_empty_company_name(self):
         with self.assertRaises(TypeError):
-            calculate_split([make_job(name="")], 44000, 5000)
+            calculate_split([make_job(name="")], 5000)
 
     def test_split_raises_on_numeric_only_company_name(self):
         with self.assertRaises(ValueError):
-            calculate_split([make_job(name="12345")], 44000, 5000)
+            calculate_split([make_job(name="12345")], 5000)
 
 
 if __name__ == "__main__":
