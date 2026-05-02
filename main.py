@@ -113,6 +113,15 @@ def ask_str(prompt: str) -> str:
             return v
 
 
+def ask_income_method() -> str:
+    """Asks whether to enter income as hourly rate or annual salary."""
+    while True:
+        v = input("  Income type (1=hourly / 2=annual salary): ").strip()
+        if v in ("1", "2"):
+            return v
+        print("  WARNING  Please enter 1 or 2.\n")
+
+
 def ask_menu() -> str:
     """Asks the user to pick an option from the main menu. 0 to quit."""
     while True:
@@ -134,6 +143,18 @@ def collect_base_info() -> tuple[int, float]:
     return num_jobs, tax_credits
 
 
+def collect_income(ytd: YTDData) -> Job:
+    """Asks income method and returns a Job with estimated_annual_income set."""
+    method = ask_income_method()
+    if method == "1":
+        hours = ask_float("  Hours per week              : ")
+        rate  = ask_float("  Hourly rate (€)             : ")
+        return Job(company_name="", ytd=ytd, hours_per_week=hours, salary_per_hour=rate)
+    else:
+        salary = ask_float("  Annual gross salary (€)     : ")
+        return Job(company_name="", ytd=ytd, annual_salary=salary)
+
+
 def collect_jobs_basic(num_jobs: int) -> list[Job]:
     """Collects job details without YTD — used for split only (option 1)."""
     jobs: list[Job] = []
@@ -143,14 +164,8 @@ def collect_jobs_basic(num_jobs: int) -> list[Job]:
         blank()
         print(f"  ── Job #{i} ──")
         name = ask_str("  Company name                : ")
-        hours = ask_float("  Hours per week              : ")
-        rate = ask_float("  Hourly rate (€)             : ")
-        job = Job(
-            company_name=name,
-            hours_per_week=hours,
-            salary_per_hour=rate,
-            ytd=YTDData(0, 0, 0, 0),
-        )
+        job  = collect_income(YTDData(0, 0, 0, 0))
+        job.company_name = name
         print(f"  → Est. annual income: {eur(job.estimated_annual_income)}")
         jobs.append(job)
 
@@ -181,7 +196,7 @@ def collect_ytd(index: int, name: str) -> YTDData:
 
 def collect_jobs_with_ytd(num_jobs: int, need_proportion: bool = False) -> list[Job]:
     """Collects job details including YTD.
-    need_proportion=True adds hours/rate — used when split is also needed (option 3).
+    need_proportion=True adds income method — used when split is also needed (option 3).
     """
     jobs: list[Job] = []
     section("Employment Details")
@@ -191,23 +206,15 @@ def collect_jobs_with_ytd(num_jobs: int, need_proportion: bool = False) -> list[
         print(f"  ── Job #{i} ──")
         name = ask_str("  Company name                : ")
 
+        ytd = collect_ytd(i, name)
+
         if need_proportion:
-            hours = ask_float("  Hours per week              : ")
-            rate = ask_float("  Hourly rate (€)             : ")
-            job = Job(
-                company_name=name,
-                hours_per_week=hours,
-                salary_per_hour=rate,
-                ytd=YTDData(0, 0, 0, 0),
-            )
+            job = collect_income(ytd)
+            job.company_name = name
             print(f"  → Est. annual income: {eur(job.estimated_annual_income)}")
         else:
-            hours, rate = 1.0, 1.0  # placeholder — not used in refund calculation
+            job = Job(company_name=name, ytd=ytd)
 
-        ytd = collect_ytd(i, name)
-        job = Job(
-            company_name=name, hours_per_week=hours, salary_per_hour=rate, ytd=ytd
-        )
         jobs.append(job)
 
     return jobs
