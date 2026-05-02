@@ -11,6 +11,7 @@ Tax year: 2026
 """
 
 from dataclasses import dataclass, field
+from typing import Optional
 
 # 2026 Irish tax constants (Budget 2026, effective 1 Jan 2026)
 
@@ -67,9 +68,9 @@ class Job:
 
     company_name: str
     ytd: YTDData
-    hours_per_week: float | None = None
-    salary_per_hour: float | None = None
-    annual_salary: float | None = None
+    hours_per_week: Optional[float] = None
+    salary_per_hour: Optional[float] = None
+    annual_salary: Optional[float] = None
     estimated_annual_income: float = field(init=False)
 
     def __post_init__(self) -> None:
@@ -213,7 +214,7 @@ def _validate_jobs(jobs: list[Job]) -> None:
 
 
 def _usc_on_income(income: float) -> float:
-    """Calculates total USC liability using 2026 progressive bands."""
+    """Calculates total USC liability using 2025 progressive bands."""
     if income <= USC_EXEMPTION_THRESHOLD:
         return 0.0
     total, remaining = 0.0, income
@@ -242,7 +243,7 @@ def _split_usc_bands(total_income: float, proportion: float) -> list[UscBandAllo
 
 
 def _prsi_on_income(gross: float) -> float:
-    """PRSI Class A — 4.2% with tapered weekly credit."""
+    """PRSI Class A — blended 4.238% (4.20% Jan–Sep, 4.35% Oct–Dec) with tapered weekly credit."""
     weekly = gross / WEEKS_PER_YEAR
     if weekly <= PRSI_WEEKLY_EXEMPT:
         return 0.0

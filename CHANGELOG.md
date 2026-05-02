@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Year-end refund / underpayment estimator based on YTD figures from ros.ie
 - Option 2 skips hours/rate inputs — only name and YTD needed for refund
 - Input validation with clear WARNING messages for invalid entries
-- 34 unit tests covering all calculation logic, validated against real P21 data
+- 44 unit tests covering all calculation logic, validated against real P21 data
 - `0` option to quit without being asked to run again
 - Press Enter confirmation before showing results
 

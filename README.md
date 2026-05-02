@@ -41,6 +41,7 @@ python3 -m unittest discover -s tests -v
 tax-calculator/
 ├── main.py               # CLI — inputs and output formatting
 ├── tax_calculator.py     # Core logic — tax calculations and validation
+├── pyproject.toml
 ├── requirements.txt
 ├── CHANGELOG.md
 ├── LICENSE
@@ -49,13 +50,13 @@ tax-calculator/
     └── test_tax_calculator.py
 ```
 
-## Tax rates (2025)
+## Tax rates (2026)
 
 | Tax | Details |
 |-----|---------|
 | PAYE | 20% up to €44,000 / 40% above |
-| USC | 0.5% → 2% → 3% → 8% |
-| PRSI (Class A) | 4.2% from Oct 2025 |
+| USC | 0.5% → 2% → 3% → 8% (exempt below €13,000) |
+| PRSI (Class A) | 4.20% Jan–Sep / 4.35% Oct–Dec (blended ~4.24%) |
 
 ## Contributing
 

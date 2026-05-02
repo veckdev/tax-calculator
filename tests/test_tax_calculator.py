@@ -190,27 +190,25 @@ class TestPRSI(unittest.TestCase):
         self.assertGreater(_prsi_on_income(20000), 0)
 
     def test_rate_above_taper(self):
-        gross = 40000
+        gross = 40_000
         self.assertAlmostEqual(
             _prsi_on_income(gross), gross * (0.042 * 39 + 0.0435 * 13) / 52, places=2
         )
-
-    def test_taper_reduces_liability(self):
-        """Weekly income in taper range (€352–€424) should pay less than full rate."""
-        # €380/week = €19,760/year — sits in the taper band
-        gross_taper = 380 * 52
-        gross_full = 500 * 52  # well above taper ceiling
-        effective_taper = _prsi_on_income(gross_taper) / gross_taper
-        effective_full = _prsi_on_income(gross_full) / gross_full
-        self.assertLess(effective_taper, effective_full)
 
     def test_taper_lower_bound_is_zero(self):
         """Weekly income at exactly the exempt threshold (€352) should produce zero PRSI."""
         self.assertEqual(_prsi_on_income(352 * 52), 0.0)
 
+    def test_taper_reduces_liability(self):
+        """Weekly income in taper range (€352–€424) should pay less than full rate."""
+        gross_taper = 380 * 52  # inside taper band
+        gross_full = 500 * 52  # above taper ceiling
+        effective_taper = _prsi_on_income(gross_taper) / gross_taper
+        effective_full = _prsi_on_income(gross_full) / gross_full
+        self.assertLess(effective_taper, effective_full)
+
     def test_taper_effective_rate_lower_than_above_ceiling(self):
         """Effective PRSI rate inside the taper band must be lower than above the ceiling."""
-        # €380/week = in taper band; €500/week = above ceiling (no credit)
         gross_taper = 380 * 52
         gross_ceiling = 500 * 52
         rate_taper = _prsi_on_income(gross_taper) / gross_taper
@@ -245,17 +243,9 @@ class TestCalculateRefund(unittest.TestCase):
             make_job("Cagney", 20, 14.80, make_ytd(3052.20, 146.64, 62.71, 128.19)),
             make_job("Allpro", 24, 14.80, make_ytd(19677.00, 789.52, 330.77, 826.43)),
         ]
-        # Total gross: €34,228.20. USC 2026 bands: 0.5% / 2% / 3%
-        gross = 34_228.20
-        usc_due = round(
-            12_012 * 0.005 + 16_688 * 0.020 + (gross - 28_700) * 0.030,
-            2,
-        )
-        usc_paid = round(201.08 + 62.71 + 330.77, 2)
+        # Total gross: €34,228.20. USC paid: €594.56. USC due (2026 bands): €559.67. Result: +€34.89
         result = calculate_refund(jobs, tax_credits=5800)
-        self.assertAlmostEqual(
-            result.usc_result, round(usc_paid - usc_due, 2), places=2
-        )
+        self.assertAlmostEqual(result.usc_result, 34.89, places=2)
 
     def test_ytd_totals_sum_across_jobs(self):
         jobs = [
@@ -267,6 +257,16 @@ class TestCalculateRefund(unittest.TestCase):
         self.assertEqual(result.total_paye_paid, 700)
         self.assertEqual(result.total_usc_paid, 150)
         self.assertEqual(result.total_prsi_paid, 300)
+
+    def test_total_result_is_sum_of_parts(self):
+        """total_result must always equal paye_result + usc_result + prsi_result."""
+        jobs = [
+            make_job("A", 24, 14.80, make_ytd(19677.00, 789.52, 330.77, 826.43)),
+            make_job("B", 20, 14.80, make_ytd(3052.20, 146.64, 62.71, 128.19)),
+        ]
+        result = calculate_refund(jobs, tax_credits=5800)
+        expected = result.paye_result + result.usc_result + result.prsi_result
+        self.assertAlmostEqual(result.total_result, expected, places=10)
 
 
 class TestValidation(unittest.TestCase):

@@ -139,22 +139,20 @@ def collect_base_info() -> tuple[int, float]:
     section("General Information")
     blank()
     num_jobs = ask_int("Number of jobs              : ")
-    tax_credits = ask_float("Annual tax credits (€)      : ")
+    tax_credits = ask_float("Annual tax credits (€)      : ", allow_zero=True)
     return num_jobs, tax_credits
 
 
-def collect_income(name: str, ytd: YTDData) -> Job:
+def collect_income(ytd: YTDData) -> Job:
     """Asks income method and returns a Job with estimated_annual_income set."""
     method = ask_income_method()
     if method == "1":
         hours = ask_float("  Hours per week              : ")
         rate = ask_float("  Hourly rate (€)             : ")
-        return Job(
-            company_name=name, ytd=ytd, hours_per_week=hours, salary_per_hour=rate
-        )
+        return Job(company_name="", ytd=ytd, hours_per_week=hours, salary_per_hour=rate)
     else:
         salary = ask_float("  Annual gross salary (€)     : ")
-        return Job(company_name=name, ytd=ytd, annual_salary=salary)
+        return Job(company_name="", ytd=ytd, annual_salary=salary)
 
 
 def collect_jobs_basic(num_jobs: int) -> list[Job]:
@@ -166,7 +164,8 @@ def collect_jobs_basic(num_jobs: int) -> list[Job]:
         blank()
         print(f"  ── Job #{i} ──")
         name = ask_str("  Company name                : ")
-        job = collect_income(name, YTDData(0, 0, 0, 0))
+        job = collect_income(YTDData(0, 0, 0, 0))
+        job.company_name = name
         print(f"  → Est. annual income: {eur(job.estimated_annual_income)}")
         jobs.append(job)
 
@@ -210,7 +209,8 @@ def collect_jobs_with_ytd(num_jobs: int, need_proportion: bool = False) -> list[
         ytd = collect_ytd(i, name)
 
         if need_proportion:
-            job = collect_income(name, ytd)
+            job = collect_income(ytd)
+            job.company_name = name
             print(f"  → Est. annual income: {eur(job.estimated_annual_income)}")
         else:
             job = Job(company_name=name, ytd=ytd)
@@ -237,7 +237,6 @@ def print_paye_tab(split: SplitResult) -> None:
 
     blank()
     print(f"  {'All income above rate band is taxable at 40%':>{W}}")
-    print(f"  {'WARNING: rate band assumes single assessment (€44,000)':>{W}}")
 
 
 def print_usc_tab(split: SplitResult) -> None:
@@ -286,8 +285,6 @@ def print_refund_section(refund: RefundSummary) -> None:
     blank()
     print("  WARNING  Estimate only. Final result depends on full-year income")
     print("     and any credits/reliefs claimed on your tax return.")
-    print("  WARNING  Rate band assumes single assessment (€44,000).")
-    print("     Married couples assessed jointly may have a higher rate band.")
     blank()
 
 
@@ -298,16 +295,16 @@ def print_refund_section(refund: RefundSummary) -> None:
 def tee_stdout():
     """Prints to screen AND captures output at the same time."""
     buf = io.StringIO()
-    old = sys.stdout
 
     class Tee:
         def write(self, s):
-            old.write(s)
+            sys.__stdout__.write(s)
             buf.write(s)
 
         def flush(self):
-            old.flush()
+            sys.__stdout__.flush()
 
+    old = sys.stdout
     sys.stdout = Tee()
     try:
         yield buf
