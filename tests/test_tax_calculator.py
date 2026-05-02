@@ -118,9 +118,9 @@ class TestUSC(unittest.TestCase):
     def test_just_above_threshold(self):
         self.assertGreater(_usc_on_income(13001), 0)
 
-    def test_known_value_from_p21(self):
-        # €34,228.20 from real P21
-        expected = round(12012 * 0.005 + 15370 * 0.02 + 6846.20 * 0.03, 2)
+    def test_known_value(self):
+        # €34,228.20 — crosses into the 3% band (2026: 0.5% up to €12,012, 2% up to €28,700, 3% above)
+        expected = round(12012 * 0.005 + 16688 * 0.02 + (34228.20 - 28700) * 0.03, 2)
         self.assertAlmostEqual(_usc_on_income(34228.20), expected, places=2)
 
 
@@ -151,15 +151,16 @@ class TestCalculateRefund(unittest.TestCase):
         self.assertLess(result.total_result, 0)
         self.assertFalse(result.is_refund)
 
-    def test_usc_result_matches_real_p21(self):
-        """USC overpayment of €21.71 from real P21 statement (3 jobs, €5,800 credits)."""
+    def test_usc_result_three_jobs(self):
+        """USC result for 3-job scenario with 2025 YTD figures recalculated against 2026 bands."""
         jobs = [
             make_job("Apleona", 15, 14.74, make_ytd(11499.00, 674.51, 201.08, 483.96)),
             make_job("Cagney",  20, 14.80, make_ytd(3052.20,  146.64,  62.71, 128.19)),
             make_job("Allpro",  24, 14.80, make_ytd(19677.00, 789.52, 330.77, 826.43)),
         ]
+        # Total gross: €34,228.20. USC paid: €594.56. USC due (2026 bands): €559.67. Result: +€34.89
         result = calculate_refund(jobs, tax_credits=5800)
-        self.assertAlmostEqual(result.usc_result, 21.71, places=2)
+        self.assertAlmostEqual(result.usc_result, 34.89, places=2)
 
     def test_ytd_totals_sum_across_jobs(self):
         jobs = [

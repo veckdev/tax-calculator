@@ -7,13 +7,13 @@ Two public functions:
   calculate_refund()  → estimates year-end refund or amount owed, based on
                         YTD figures from ros.ie (same method as the P21)
 
-Tax year: 2025
+Tax year: 2026
 """
 
 from dataclasses import dataclass, field
 
 
-# 2025 Irish tax constants
+# 2026 Irish tax constants (Budget 2026, effective 1 Jan 2026)
 
 PAYE_STANDARD_RATE      = 0.20
 PAYE_HIGHER_RATE        = 0.40
@@ -21,12 +21,14 @@ PAYE_STANDARD_RATE_BAND = 44_000.00
 
 USC_BANDS: list[tuple[float, float]] = [
     (12_012.00, 0.005),
-    (15_370.00, 0.020),
-    (42_662.00, 0.030),
+    (16_688.00, 0.020),  # ceiling raised to €28,700 (was €27,382 in 2025)
+    (41_344.00, 0.030),
     (float("inf"), 0.080),
 ]
 USC_EXEMPTION_THRESHOLD = 13_000.00
 
+# PRSI Class A: 4.2% Jan–Sep 2026, rising to 4.35% from 1 Oct 2026.
+# Year-end estimates use 4.2% (full-year blended rate is ~4.24%, difference is minimal).
 PRSI_RATE              = 0.042
 PRSI_WEEKLY_EXEMPT     = 352.00
 PRSI_TAPER_UPPER       = 424.00
