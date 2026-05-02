@@ -361,7 +361,7 @@ def flow_both() -> None:
 
 def main() -> bool:
     """Returns False if the user chose to quit, True otherwise."""
-    header("Irish Revenue Tax Split Calculator  ·  2025")
+    header("Irish Revenue Tax Split Calculator  ·  2026")
 
     blank()
     print("  What do you want to do?")
