@@ -11,15 +11,22 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from tax_calculator import (
-    Job, YTDData, calculate_split, calculate_refund,
-    _usc_on_income, _prsi_on_income, _paye_on_income,
+    Job,
+    YTDData,
+    calculate_split,
+    calculate_refund,
+    _usc_on_income,
+    _prsi_on_income,
+    _paye_on_income,
     PAYE_STANDARD_RATE_BAND,
 )
 
-
 # helpers
 
-def make_job(name="Acme Ltd", hours=20.0, rate=15.0, ytd=None, annual_salary=None) -> Job:
+
+def make_job(
+    name="Acme Ltd", hours=20.0, rate=15.0, ytd=None, annual_salary=None
+) -> Job:
     if ytd is None:
         ytd = YTDData(gross_pay=0, income_tax_paid=0, usc_paid=0, prsi_paid=0)
     if annual_salary is not None:
@@ -46,10 +53,33 @@ class TestJobEstimatedIncome(unittest.TestCase):
         self.assertAlmostEqual(job.estimated_annual_income, 50_000.0, places=2)
 
     def test_annual_salary_split_proportions(self):
-        jobs = [make_job("A", annual_salary=60_000), make_job("B", annual_salary=40_000)]
+        jobs = [
+            make_job("A", annual_salary=60_000),
+            make_job("B", annual_salary=40_000),
+        ]
         result = calculate_split(jobs, tax_credits=5000)
         self.assertAlmostEqual(result.allocations[0].proportion, 0.60, places=4)
         self.assertAlmostEqual(result.allocations[1].proportion, 0.40, places=4)
+
+    def test_annual_salary_split_absolute_values(self):
+        """Rate band and credits split correctly by salary proportion."""
+        jobs = [
+            make_job("A", annual_salary=60_000),
+            make_job("B", annual_salary=40_000),
+        ]
+        result = calculate_split(jobs, tax_credits=5_000)
+        self.assertAlmostEqual(
+            result.allocations[0].allocated_rate_band, 44_000 * 0.60, places=2
+        )
+        self.assertAlmostEqual(
+            result.allocations[1].allocated_rate_band, 44_000 * 0.40, places=2
+        )
+        self.assertAlmostEqual(
+            result.allocations[0].allocated_tax_credits, 5_000 * 0.60, places=2
+        )
+        self.assertAlmostEqual(
+            result.allocations[1].allocated_tax_credits, 5_000 * 0.40, places=2
+        )
 
     def test_annual_salary_rejects_text(self):
         with self.assertRaises(TypeError):
@@ -95,8 +125,12 @@ class TestCalculateSplitProportions(unittest.TestCase):
 
     def test_rate_band_matches_ros_ie(self):
         """Real case: 24h + 20h at €14.80 → €24,000 / €20,000"""
-        self.assertAlmostEqual(self.result.allocations[0].allocated_rate_band, 24000.00, places=2)
-        self.assertAlmostEqual(self.result.allocations[1].allocated_rate_band, 20000.00, places=2)
+        self.assertAlmostEqual(
+            self.result.allocations[0].allocated_rate_band, 24000.00, places=2
+        )
+        self.assertAlmostEqual(
+            self.result.allocations[1].allocated_rate_band, 20000.00, places=2
+        )
 
     def test_tax_credits_sum_to_total(self):
         total = sum(a.allocated_tax_credits for a in self.result.allocations)
@@ -105,7 +139,9 @@ class TestCalculateSplitProportions(unittest.TestCase):
     def test_usc_bands_sum_to_estimated_income(self):
         for alloc in self.result.allocations:
             band_total = sum(b.annual_amount for b in alloc.usc_bands)
-            self.assertAlmostEqual(band_total, alloc.job.estimated_annual_income, places=2)
+            self.assertAlmostEqual(
+                band_total, alloc.job.estimated_annual_income, places=2
+            )
 
 
 class TestPAYE(unittest.TestCase):
@@ -114,7 +150,9 @@ class TestPAYE(unittest.TestCase):
         self.assertAlmostEqual(_paye_on_income(30000, 0), 30000 * 0.20, places=2)
 
     def test_with_credits(self):
-        self.assertAlmostEqual(_paye_on_income(30000, 5000), 30000 * 0.20 - 5000, places=2)
+        self.assertAlmostEqual(
+            _paye_on_income(30000, 5000), 30000 * 0.20 - 5000, places=2
+        )
 
     def test_credits_exceed_tax_returns_zero(self):
         self.assertEqual(_paye_on_income(10000, 99999), 0.0)
@@ -135,8 +173,12 @@ class TestUSC(unittest.TestCase):
 
     def test_known_value(self):
         # €34,228.20 — crosses into the 3% band (2026: 0.5% up to €12,012, 2% up to €28,700, 3% above)
-        expected = round(12012 * 0.005 + 16688 * 0.02 + (34228.20 - 28700) * 0.03, 2)
-        self.assertAlmostEqual(_usc_on_income(34228.20), expected, places=2)
+        gross = 34_228.20
+        expected = round(
+            12_012 * 0.005 + 16_688 * 0.020 + (gross - 28_700) * 0.030,
+            2,
+        )
+        self.assertAlmostEqual(_usc_on_income(gross), expected, places=2)
 
 
 class TestPRSI(unittest.TestCase):
@@ -149,19 +191,49 @@ class TestPRSI(unittest.TestCase):
 
     def test_rate_above_taper(self):
         gross = 40000
-        self.assertAlmostEqual(_prsi_on_income(gross), gross * 0.042, places=2)
+        self.assertAlmostEqual(
+            _prsi_on_income(gross), gross * (0.042 * 39 + 0.0435 * 13) / 52, places=2
+        )
+
+    def test_taper_reduces_liability(self):
+        """Weekly income in taper range (€352–€424) should pay less than full rate."""
+        # €380/week = €19,760/year — sits in the taper band
+        gross_taper = 380 * 52
+        gross_full = 500 * 52  # well above taper ceiling
+        effective_taper = _prsi_on_income(gross_taper) / gross_taper
+        effective_full = _prsi_on_income(gross_full) / gross_full
+        self.assertLess(effective_taper, effective_full)
+
+    def test_taper_lower_bound_is_zero(self):
+        """Weekly income at exactly the exempt threshold (€352) should produce zero PRSI."""
+        self.assertEqual(_prsi_on_income(352 * 52), 0.0)
+
+    def test_taper_effective_rate_lower_than_above_ceiling(self):
+        """Effective PRSI rate inside the taper band must be lower than above the ceiling."""
+        # €380/week = in taper band; €500/week = above ceiling (no credit)
+        gross_taper = 380 * 52
+        gross_ceiling = 500 * 52
+        rate_taper = _prsi_on_income(gross_taper) / gross_taper
+        rate_ceiling = _prsi_on_income(gross_ceiling) / gross_ceiling
+        self.assertLess(rate_taper, rate_ceiling)
 
 
 class TestCalculateRefund(unittest.TestCase):
 
     def test_refund_when_overpaid(self):
-        jobs = [make_job("A", 24, 14.80, make_ytd(gross=10000, paye=2000, usc=200, prsi=400))]
+        jobs = [
+            make_job(
+                "A", 24, 14.80, make_ytd(gross=10000, paye=2000, usc=200, prsi=400)
+            )
+        ]
         result = calculate_refund(jobs, tax_credits=5000)
         self.assertGreater(result.paye_result, 0)
         self.assertTrue(result.is_refund)
 
     def test_underpayment_when_paid_too_little(self):
-        jobs = [make_job("A", 40, 30.0, make_ytd(gross=50000, paye=100, usc=100, prsi=100))]
+        jobs = [
+            make_job("A", 40, 30.0, make_ytd(gross=50000, paye=100, usc=100, prsi=100))
+        ]
         result = calculate_refund(jobs, tax_credits=100)
         self.assertLess(result.total_result, 0)
         self.assertFalse(result.is_refund)
@@ -170,22 +242,30 @@ class TestCalculateRefund(unittest.TestCase):
         """USC result for 3-job scenario with 2025 YTD figures recalculated against 2026 bands."""
         jobs = [
             make_job("Apleona", 15, 14.74, make_ytd(11499.00, 674.51, 201.08, 483.96)),
-            make_job("Cagney",  20, 14.80, make_ytd(3052.20,  146.64,  62.71, 128.19)),
-            make_job("Allpro",  24, 14.80, make_ytd(19677.00, 789.52, 330.77, 826.43)),
+            make_job("Cagney", 20, 14.80, make_ytd(3052.20, 146.64, 62.71, 128.19)),
+            make_job("Allpro", 24, 14.80, make_ytd(19677.00, 789.52, 330.77, 826.43)),
         ]
-        # Total gross: €34,228.20. USC paid: €594.56. USC due (2026 bands): €559.67. Result: +€34.89
+        # Total gross: €34,228.20. USC 2026 bands: 0.5% / 2% / 3%
+        gross = 34_228.20
+        usc_due = round(
+            12_012 * 0.005 + 16_688 * 0.020 + (gross - 28_700) * 0.030,
+            2,
+        )
+        usc_paid = round(201.08 + 62.71 + 330.77, 2)
         result = calculate_refund(jobs, tax_credits=5800)
-        self.assertAlmostEqual(result.usc_result, 34.89, places=2)
+        self.assertAlmostEqual(
+            result.usc_result, round(usc_paid - usc_due, 2), places=2
+        )
 
     def test_ytd_totals_sum_across_jobs(self):
         jobs = [
             make_job("A", 24, 14.80, make_ytd(10000, 500, 100, 200)),
-            make_job("B", 20, 14.80, make_ytd(5000,  200,  50, 100)),
+            make_job("B", 20, 14.80, make_ytd(5000, 200, 50, 100)),
         ]
         result = calculate_refund(jobs, tax_credits=5000)
-        self.assertEqual(result.total_gross,     15000)
+        self.assertEqual(result.total_gross, 15000)
         self.assertEqual(result.total_paye_paid, 700)
-        self.assertEqual(result.total_usc_paid,  150)
+        self.assertEqual(result.total_usc_paid, 150)
         self.assertEqual(result.total_prsi_paid, 300)
 
 
@@ -202,6 +282,20 @@ class TestValidation(unittest.TestCase):
     def test_split_raises_on_negative_credits(self):
         with self.assertRaises(ValueError):
             calculate_split([make_job()], tax_credits=-100)
+
+    def test_split_allows_zero_credits(self):
+        """Non-residents or edge cases may have zero tax credits."""
+        result = calculate_split([make_job("A", annual_salary=30_000)], tax_credits=0)
+        self.assertEqual(result.allocations[0].allocated_tax_credits, 0.0)
+
+    def test_refund_allows_zero_credits(self):
+        jobs = [
+            make_job(
+                "A", 24, 14.80, make_ytd(gross=10_000, paye=500, usc=100, prsi=200)
+            )
+        ]
+        result = calculate_refund(jobs, tax_credits=0)
+        self.assertIsNotNone(result)
 
     def test_refund_raises_on_negative_ytd(self):
         jobs = [make_job(ytd=make_ytd(gross=-1))]

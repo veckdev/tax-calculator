@@ -1,0 +1,10 @@
+[project]
+name = "tax-calculator"
+version = "1.1.0"
+description = "Command-line tool for Irish PAYE workers with multiple employments."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+
+[project.scripts]
+tax-calculator = "main:run"

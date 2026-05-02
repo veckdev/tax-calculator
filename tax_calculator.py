@@ -11,41 +11,44 @@ Tax year: 2026
 """
 
 from dataclasses import dataclass, field
-from typing import Optional
-
 
 # 2026 Irish tax constants (Budget 2026, effective 1 Jan 2026)
 
-PAYE_STANDARD_RATE      = 0.20
-PAYE_HIGHER_RATE        = 0.40
+PAYE_STANDARD_RATE = 0.20
+PAYE_HIGHER_RATE = 0.40
 PAYE_STANDARD_RATE_BAND = 44_000.00
 
 USC_BANDS: list[tuple[float, float]] = [
     (12_012.00, 0.005),
-    (16_688.00, 0.020),  # ceiling raised to €28,700 (was €27,382 in 2025)
+    (
+        16_688.00,
+        0.020,
+    ),  # band size €16,688 → cumulative ceiling €28,700 (raised from €27,382 in 2025)
     (41_344.00, 0.030),
     (float("inf"), 0.080),
 ]
 USC_EXEMPTION_THRESHOLD = 13_000.00
 
-# PRSI Class A: 4.2% Jan–Sep 2026, rising to 4.35% from 1 Oct 2026.
-# Year-end estimates use 4.2% (full-year blended rate is ~4.24%, difference is minimal).
-PRSI_RATE              = 0.042
-PRSI_WEEKLY_EXEMPT     = 352.00
-PRSI_TAPER_UPPER       = 424.00
+# PRSI Class A: 4.20% Jan–Sep 2026 (39 weeks), 4.35% Oct–Dec 2026 (13 weeks).
+# Blended annual rate: (0.042 × 39 + 0.0435 × 13) / 52 ≈ 4.238%
+PRSI_RATE = (0.042 * 39 + 0.0435 * 13) / 52
+PRSI_WEEKLY_EXEMPT = 352.00
+PRSI_TAPER_UPPER = 424.00
 PRSI_MAX_WEEKLY_CREDIT = 12.00
-WEEKS_PER_YEAR         = 52
+WEEKS_PER_YEAR = 52
 
 
 # data classes
 
+
 @dataclass
 class YTDData:
     """YTD figures pulled from ros.ie → PAYE Services → Overview."""
-    gross_pay:       float
+
+    gross_pay: float
     income_tax_paid: float
-    usc_paid:        float
-    prsi_paid:       float
+    usc_paid: float
+    prsi_paid: float
 
     @property
     def total_tax_paid(self) -> float:
@@ -61,11 +64,12 @@ class Job:
     the job is used in calculate_split(); neither is required for
     calculate_refund() which uses YTD gross instead.
     """
-    company_name:    str
-    ytd:             YTDData
-    hours_per_week:  Optional[float] = None
-    salary_per_hour: Optional[float] = None
-    annual_salary:   Optional[float] = None
+
+    company_name: str
+    ytd: YTDData
+    hours_per_week: float | None = None
+    salary_per_hour: float | None = None
+    annual_salary: float | None = None
     estimated_annual_income: float = field(init=False)
 
     def __post_init__(self) -> None:
@@ -88,27 +92,30 @@ class Job:
 @dataclass
 class UscBandAllocation:
     """One USC band allocated to a single job."""
-    rate:          float
+
+    rate: float
     annual_amount: float
 
 
 @dataclass
 class JobAllocation:
     """Proportional allowance split for one job — what to enter on ros.ie."""
-    job:                   Job
-    proportion:            float
-    allocated_rate_band:   float
+
+    job: Job
+    proportion: float
+    allocated_rate_band: float
     allocated_tax_credits: float
-    usc_bands:             list[UscBandAllocation]
+    usc_bands: list[UscBandAllocation]
 
 
 @dataclass
 class SplitResult:
     """Output of calculate_split() — one allocation per job."""
-    jobs:                list[Job]
+
+    jobs: list[Job]
     total_annual_income: float
-    total_tax_credits:   float
-    allocations:         list[JobAllocation]
+    total_tax_credits: float
+    allocations: list[JobAllocation]
 
 
 @dataclass
@@ -118,13 +125,14 @@ class RefundSummary:
     Mirrors the Revenue P21 Statement of Liability calculation.
     Positive result = refund. Negative = amount owed to Revenue.
     """
-    total_gross:     float
+
+    total_gross: float
     total_paye_paid: float
-    total_usc_paid:  float
+    total_usc_paid: float
     total_prsi_paid: float
-    paye_due:        float
-    usc_due:         float
-    prsi_due:        float
+    paye_due: float
+    usc_due: float
+    prsi_due: float
 
     @property
     def paye_result(self) -> float:
@@ -148,6 +156,7 @@ class RefundSummary:
 
 
 # input validation
+
 
 def _require_str(value: object, field_name: str) -> str:
     """Ensures value is a non-empty string."""
@@ -192,16 +201,19 @@ def _validate_jobs(jobs: list[Job]) -> None:
     for i, job in enumerate(jobs, 1):
         label = f"Job #{i}"
         _require_str(job.company_name, f"{label} company_name")
-        _require_non_negative_float(job.ytd.gross_pay,       f"{label} YTD gross_pay")
-        _require_non_negative_float(job.ytd.income_tax_paid, f"{label} YTD income_tax_paid")
-        _require_non_negative_float(job.ytd.usc_paid,        f"{label} YTD usc_paid")
-        _require_non_negative_float(job.ytd.prsi_paid,       f"{label} YTD prsi_paid")
+        _require_non_negative_float(job.ytd.gross_pay, f"{label} YTD gross_pay")
+        _require_non_negative_float(
+            job.ytd.income_tax_paid, f"{label} YTD income_tax_paid"
+        )
+        _require_non_negative_float(job.ytd.usc_paid, f"{label} YTD usc_paid")
+        _require_non_negative_float(job.ytd.prsi_paid, f"{label} YTD prsi_paid")
 
 
 # internal tax helpers
 
+
 def _usc_on_income(income: float) -> float:
-    """Calculates total USC liability using 2025 progressive bands."""
+    """Calculates total USC liability using 2026 progressive bands."""
     if income <= USC_EXEMPTION_THRESHOLD:
         return 0.0
     total, remaining = 0.0, income
@@ -237,7 +249,9 @@ def _prsi_on_income(gross: float) -> float:
     annual = gross * PRSI_RATE
     if weekly <= PRSI_TAPER_UPPER:
         taper = (weekly - PRSI_WEEKLY_EXEMPT) / (PRSI_TAPER_UPPER - PRSI_WEEKLY_EXEMPT)
-        annual = max(annual - PRSI_MAX_WEEKLY_CREDIT * (1 - taper) * WEEKS_PER_YEAR, 0.0)
+        annual = max(
+            annual - PRSI_MAX_WEEKLY_CREDIT * (1 - taper) * WEEKS_PER_YEAR, 0.0
+        )
     return annual
 
 
@@ -255,8 +269,9 @@ def _paye_on_income(gross: float, credits: float) -> float:
 
 # public functions
 
+
 def calculate_split(
-    jobs:        list[Job],
+    jobs: list[Job],
     tax_credits: float,
 ) -> SplitResult:
     """
@@ -265,33 +280,37 @@ def calculate_split(
     Returns what the user should enter on ros.ie → Divide tax credits.
     """
     _validate_jobs(jobs)
-    _require_positive_float(tax_credits, "tax_credits")
+    _require_non_negative_float(tax_credits, "tax_credits")
 
     total_estimated = sum(j.estimated_annual_income for j in jobs)
     if total_estimated <= 0:
-        raise ValueError("Each job must have hours/rate or annual_salary set to split tax credits.")
+        raise ValueError(
+            "Each job must have hours/rate or annual_salary set to split tax credits."
+        )
     allocations: list[JobAllocation] = []
 
     for job in jobs:
         proportion = job.estimated_annual_income / total_estimated
-        allocations.append(JobAllocation(
-            job                   = job,
-            proportion            = proportion,
-            allocated_rate_band   = PAYE_STANDARD_RATE_BAND * proportion,
-            allocated_tax_credits = tax_credits * proportion,
-            usc_bands             = _split_usc_bands(total_estimated, proportion),
-        ))
+        allocations.append(
+            JobAllocation(
+                job=job,
+                proportion=proportion,
+                allocated_rate_band=PAYE_STANDARD_RATE_BAND * proportion,
+                allocated_tax_credits=tax_credits * proportion,
+                usc_bands=_split_usc_bands(total_estimated, proportion),
+            )
+        )
 
     return SplitResult(
-        jobs                = jobs,
-        total_annual_income = total_estimated,
-        total_tax_credits   = tax_credits,
-        allocations         = allocations,
+        jobs=jobs,
+        total_annual_income=total_estimated,
+        total_tax_credits=tax_credits,
+        allocations=allocations,
     )
 
 
 def calculate_refund(
-    jobs:        list[Job],
+    jobs: list[Job],
     tax_credits: float,
 ) -> RefundSummary:
     """
@@ -300,19 +319,19 @@ def calculate_refund(
     what should have been paid — same logic as the Revenue P21.
     """
     _validate_jobs(jobs)
-    _require_positive_float(tax_credits, "tax_credits")
+    _require_non_negative_float(tax_credits, "tax_credits")
 
-    total_gross     = sum(j.ytd.gross_pay        for j in jobs)
-    total_paye_paid = sum(j.ytd.income_tax_paid  for j in jobs)
-    total_usc_paid  = sum(j.ytd.usc_paid         for j in jobs)
-    total_prsi_paid = sum(j.ytd.prsi_paid        for j in jobs)
+    total_gross = sum(j.ytd.gross_pay for j in jobs)
+    total_paye_paid = sum(j.ytd.income_tax_paid for j in jobs)
+    total_usc_paid = sum(j.ytd.usc_paid for j in jobs)
+    total_prsi_paid = sum(j.ytd.prsi_paid for j in jobs)
 
     return RefundSummary(
-        total_gross     = total_gross,
-        total_paye_paid = total_paye_paid,
-        total_usc_paid  = total_usc_paid,
-        total_prsi_paid = total_prsi_paid,
-        paye_due        = _paye_on_income(total_gross, tax_credits),
-        usc_due         = _usc_on_income(total_gross),
-        prsi_due        = _prsi_on_income(total_gross),
+        total_gross=total_gross,
+        total_paye_paid=total_paye_paid,
+        total_usc_paid=total_usc_paid,
+        total_prsi_paid=total_prsi_paid,
+        paye_due=_paye_on_income(total_gross, tax_credits),
+        usc_due=_usc_on_income(total_gross),
+        prsi_due=_prsi_on_income(total_gross),
     )
