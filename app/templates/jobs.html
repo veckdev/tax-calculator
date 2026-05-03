@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block content %}
+<nav>
+  <div class="logo">PAYE <span>Calculator</span></div>
+  <div class="steps">
+    <div class="step done">
+      <div class="step-dot">✓</div>
+      <span>Setup</span>
+    </div>
+    <div class="step-line done"></div>
+    <div class="step active">
+      <div class="step-dot">2</div>
+      <span>Jobs</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step">
+      <div class="step-dot">3</div>
+      <span>Results</span>
+    </div>
+  </div>
+</nav>
+
+<div class="hero">
+  <h1>Employment details</h1>
+  <p>Enter your details for each job.</p>
+</div>
+
+<form action="/results" method="POST">
+  <input type="hidden" name="tax_credits" value="{{ tax_credits }}">
+  <input type="hidden" name="mode" value="{{ mode }}">
+
+  {% for i in range(1, num_jobs + 1) %}
+  <div class="card">
+    <div class="card-label">Job {{ i }}</div>
+    <div class="field">
+      <label>Company name</label>
+      <input type="text" name="company_{{ i }}" placeholder="e.g. Acme Ltd" required>
+    </div>
+
+    {% if mode in ['split', 'both'] %}
+    <div class="field">
+      <label>Income type</label>
+      <select name="income_type_{{ i }}" onchange="toggleIncome(this, {{ i }})">
+        <option value="hourly">Hourly rate</option>
+        <option value="salary">Annual salary</option>
+      </select>
+    </div>
+    <div id="hourly_{{ i }}">
+      <div class="field-row">
+        <div class="field">
+          <label>Hours per week</label>
+          <input type="number" name="hours_{{ i }}" placeholder="e.g. 24" min="0" step="0.5">
+        </div>
+        <div class="field">
+          <label>Hourly rate (€)</label>
+          <input type="number" name="rate_{{ i }}" placeholder="e.g. 14.80" min="0" step="0.01">
+        </div>
+      </div>
+    </div>
+    <div id="salary_{{ i }}" style="display:none">
+      <div class="field">
+        <label>Annual salary (€)</label>
+        <input type="number" name="salary_{{ i }}" placeholder="e.g. 35000" min="0" step="0.01">
+      </div>
+    </div>
+    {% endif %}
+
+    {% if mode in ['refund', 'both'] %}
+    <div class="card-label" style="margin-top: 16px;">YTD figures — from ros.ie</div>
+    <div class="field-row">
+      <div class="field">
+        <label>Gross pay (€)</label>
+        <input type="number" name="gross_{{ i }}" placeholder="0.00" min="0" step="0.01">
+      </div>
+      <div class="field">
+        <label>Income tax paid (€)</label>
+        <input type="number" name="paye_{{ i }}" placeholder="0.00" min="0" step="0.01">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>USC paid (€)</label>
+        <input type="number" name="usc_{{ i }}" placeholder="0.00" min="0" step="0.01">
+      </div>
+      <div class="field">
+        <label>PRSI paid (€)</label>
+        <input type="number" name="prsi_{{ i }}" placeholder="0.00" min="0" step="0.01">
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  <div class="nav-bar">
+    <button type="button" class="btn-back" onclick="history.back()">← Back</button>
+    <button type="submit" class="btn-next">Continue →</button>
+  </div>
+</form>
+
+<script>
+  function toggleIncome(select, i) {
+    document.getElementById('hourly_' + i).style.display = select.value === 'hourly' ? 'block' : 'none';
+    document.getElementById('salary_' + i).style.display = select.value === 'salary' ? 'block' : 'none';
+  }
+</script>
+{% endblock %}

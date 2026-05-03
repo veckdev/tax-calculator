@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block content %}
+<nav>
+    <div class="logo">PAYE <span>Calculator</span></div>
+    <div class="steps">
+        <div class="step done">
+            <div class="step-dot">✓</div>
+            <span>Setup</span>
+        </div>
+        <div class="step-line done"></div>
+        <div class="step done">
+            <div class="step-dot">✓</div>
+            <span>Jobs</span>
+        </div>
+        <div class="step-line done"></div>
+        <div class="step active">
+            <div class="step-dot">3</div>
+            <span>Results</span>
+        </div>
+    </div>
+</nav>
+
+<div class="hero">
+    <h1>Your results</h1>
+    <p>Based on the details you entered.</p>
+</div>
+
+{% if split %}
+<div class="card" style="margin-bottom: 24px;">
+    <div class="card-label">PAYE — Rate band & tax credits</div>
+    <p style="font-size: 12px; color: #636366; margin-bottom: 16px;">Enter these on ros.ie → Divide tax credits → PAYE
+        tab</p>
+    {% for a in split.allocations %}
+    <div style="margin-bottom: 16px;">
+        <p style="font-size: 13px; font-weight: 500; color: #AEAEB2; margin-bottom: 10px;">{{ a.job.company_name }}</p>
+        <div class="field-row">
+            <div class="result-card even">
+                <div class="tag">Rate band</div>
+                <div class="amount">€{{ "%.2f"|format(a.allocated_rate_band) }}</div>
+            </div>
+            <div class="result-card even">
+                <div class="tag">Tax credits</div>
+                <div class="amount">€{{ "%.2f"|format(a.allocated_tax_credits) }}</div>
+            </div>
+        </div>
+        <div style="margin-top: 10px;">
+            <div class="card-label">USC bands</div>
+            {% for b in a.usc_bands %}
+            <div
+                style="display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; border-bottom: 0.5px solid #2C2C2E;">
+                <span style="color: #636366;">{{ "%.1f%%"|format(b.rate * 100) }}</span>
+                <span>€{{ "%.2f"|format(b.annual_amount) }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% if not loop.last %}
+    <div style="border-top: 0.5px solid #2C2C2E; margin: 16px 0;"></div>
+    {% endif %}
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if refund %}
+<div class="results-grid">
+    <div
+        class="result-card {{ 'refund' if refund.paye_result > 0.005 else 'owed' if refund.paye_result < -0.005 else 'even' }}">
+        <div class="tag">PAYE</div>
+        <div class="amount">€{{ "%.2f"|format(refund.paye_result|abs) }}</div>
+        <div class="sub">{{ 'Refund' if refund.paye_result > 0.005 else 'Owed' if refund.paye_result < -0.005
+                else 'Balanced' }}</div>
+        </div>
+        <div
+            class="result-card {{ 'refund' if refund.usc_result > 0.005 else 'owed' if refund.usc_result < -0.005 else 'even' }}">
+            <div class="tag">USC</div>
+            <div class="amount">€{{ "%.2f"|format(refund.usc_result|abs) }}</div>
+            <div class="sub">{{ 'Refund' if refund.usc_result > 0.005 else 'Owed' if refund.usc_result < -0.005
+                    else 'Balanced' }}</div>
+            </div>
+            <div
+                class="result-card {{ 'refund' if refund.prsi_result > 0.005 else 'owed' if refund.prsi_result < -0.005 else 'even' }}">
+                <div class="tag">PRSI</div>
+                <div class="amount">€{{ "%.2f"|format(refund.prsi_result|abs) }}</div>
+                <div class="sub">{{ 'Refund' if refund.prsi_result > 0.005 else 'Owed' if refund.prsi_result < -0.005
+                        else 'Balanced' }}</div>
+                </div>
+            </div>
+
+            <div class="overall">
+                <div>
+                    <div class="label">Overall result</div>
+                    <div
+                        class="badge {{ 'refund' if refund.total_result > 0.005 else 'owed' if refund.total_result < -0.005 else 'even' }}">
+                        {{ 'Refund' if refund.total_result > 0.005 else 'Owed' if refund.total_result < -0.005
+                            else 'Balanced' }} </div>
+                    </div>
+                    <div
+                        class="value {{ 'refund' if refund.total_result > 0.005 else 'owed' if refund.total_result < -0.005 else 'even' }}">
+                        €{{ "%.2f"|format(refund.total_result|abs) }}
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="warning">
+                    Estimate only. Final result depends on full-year income and any credits or reliefs claimed.
+                    Rate band assumes single assessment (€44,000). Always verify on ros.ie.
+                </div>
+
+                <div class="nav-bar" style="margin-top: 24px;">
+                    <button type="button" class="btn-back" onclick="history.back()">← Back</button>
+                    <a href="/" class="btn-next" style="text-decoration: none;">Start over</a>
+                </div>
+
+                {% endblock %}
