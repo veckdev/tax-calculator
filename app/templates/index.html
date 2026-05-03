@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block content %}
+<nav>
+    <div class="logo">PAYE <span>Calculator</span></div>
+    <div class="steps">
+        <div class="step active">
+            <div class="step-dot">1</div>
+            <span>Setup</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="step">
+            <div class="step-dot">2</div>
+            <span>Jobs</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="step">
+            <div class="step-dot">3</div>
+            <span>Results</span>
+        </div>
+    </div>
+</nav>
+
+<div class="hero">
+    <h1>Let's get started</h1>
+    <p>A few details before we calculate your tax split.</p>
+</div>
+
+<form action="/jobs" method="POST">
+    <div class="card">
+        <div class="card-label">General</div>
+        <div class="field">
+            <label>Number of jobs</label>
+            <select name="num_jobs">
+                <option value="2">2 jobs</option>
+                <option value="3">3 jobs</option>
+                <option value="4">4 jobs</option>
+            </select>
+        </div>
+        <div class="field">
+            <label>Annual tax credits (€)</label>
+            <input type="number" name="tax_credits" placeholder="e.g. 5800" min="0" step="0.01">
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-label">What do you need?</div>
+        <div class="field">
+            <select name="mode">
+                <option value="split">Split tax credits across jobs (ros.ie allocation)</option>
+                <option value="refund">Estimate year-end refund / amount owed</option>
+                <option value="both">Both</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="nav-bar">
+        <span></span>
+        <button type="submit" class="btn-next">Continue →</button>
+    </div>
+</form>
+{% endblock %}
