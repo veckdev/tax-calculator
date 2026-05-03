@@ -26,7 +26,7 @@
     <p>A few details before we calculate your tax split.</p>
 </div>
 
-<form action="/jobs" method="POST">
+<form id="setup-form" action="/jobs" method="POST" novalidate>
     <div class="card">
         <div class="card-label">General</div>
         <div class="field">
@@ -39,7 +39,8 @@
         </div>
         <div class="field">
             <label>Annual tax credits (€)</label>
-            <input type="number" name="tax_credits" placeholder="e.g. 5800" min="0" step="0.01">
+            <input type="number" name="tax_credits" id="tax_credits" placeholder="e.g. 5800" min="0" step="0.01">
+            <span class="field-error" id="tax_credits_error"></span>
         </div>
     </div>
 
@@ -59,4 +60,29 @@
         <button type="submit" class="btn-next">Continue →</button>
     </div>
 </form>
+
+<script>
+    document.getElementById("setup-form").addEventListener("submit", function (e) {
+        let valid = true;
+
+        const credits = document.getElementById("tax_credits");
+        const creditsError = document.getElementById("tax_credits_error");
+        const val = credits.value.trim();
+
+        if (val === "") {
+            creditsError.textContent = "Please enter your annual tax credits. Enter 0 if none.";
+            credits.classList.add("input-error");
+            valid = false;
+        } else if (parseFloat(val) < 0) {
+            creditsError.textContent = "Tax credits cannot be negative.";
+            credits.classList.add("input-error");
+            valid = false;
+        } else {
+            creditsError.textContent = "";
+            credits.classList.remove("input-error");
+        }
+
+        if (!valid) e.preventDefault();
+    });
+</script>
 {% endblock %}

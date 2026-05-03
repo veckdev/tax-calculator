@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+<nav>
+    <div class="logo">PAYE <span>Calculator</span></div>
+</nav>
+
+<div class="hero">
+    <h1>Something went wrong</h1>
+    <p>{{ message }}</p>
+</div>
+
+<div class="nav-bar">
+    <button type="button" class="btn-back" onclick="history.back()">← Go back</button>
+    <a href="/" class="btn-next" style="text-decoration: none;">Start over</a>
+</div>
+{% endblock %}

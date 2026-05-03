@@ -26,7 +26,7 @@
   <p>Enter your details for each job.</p>
 </div>
 
-<form action="/results" method="POST">
+<form action="/results" method="POST" novalidate>
   <input type="hidden" name="tax_credits" value="{{ tax_credits }}">
   <input type="hidden" name="mode" value="{{ mode }}">
 
@@ -35,7 +35,8 @@
     <div class="card-label">Job {{ i }}</div>
     <div class="field">
       <label>Company name</label>
-      <input type="text" name="company_{{ i }}" placeholder="e.g. Acme Ltd" required>
+      <input type="text" name="company_{{ i }}" placeholder="e.g. Acme Ltd">
+      <span class="field-error" id="company_{{ i }}_error"></span>
     </div>
 
     {% if mode in ['split', 'both'] %}
@@ -51,10 +52,12 @@
         <div class="field">
           <label>Hours per week</label>
           <input type="number" name="hours_{{ i }}" placeholder="e.g. 24" min="0" step="0.5">
+          <span class="field-error" id="hours_{{ i }}_error"></span>
         </div>
         <div class="field">
           <label>Hourly rate (€)</label>
           <input type="number" name="rate_{{ i }}" placeholder="e.g. 14.80" min="0" step="0.01">
+          <span class="field-error" id="rate_{{ i }}_error"></span>
         </div>
       </div>
     </div>
@@ -62,6 +65,7 @@
       <div class="field">
         <label>Annual salary (€)</label>
         <input type="number" name="salary_{{ i }}" placeholder="e.g. 35000" min="0" step="0.01">
+        <span class="field-error" id="salary_{{ i }}_error"></span>
       </div>
     </div>
     {% endif %}
@@ -103,5 +107,70 @@
     document.getElementById('hourly_' + i).style.display = select.value === 'hourly' ? 'block' : 'none';
     document.getElementById('salary_' + i).style.display = select.value === 'salary' ? 'block' : 'none';
   }
+
+  document.querySelector("form").addEventListener("submit", function (e) {
+    let valid = true;
+    const numJobs = {{ num_jobs }
+  };
+  const mode = "{{ mode }}";
+
+  for (let i = 1; i <= numJobs; i++) {
+    const company = document.querySelector(`[name="company_${i}"]`);
+    const companyError = document.getElementById(`company_${i}_error`);
+
+    if (!company.value.trim()) {
+      companyError.textContent = "Company name cannot be empty.";
+      company.classList.add("input-error");
+      valid = false;
+    } else {
+      companyError.textContent = "";
+      company.classList.remove("input-error");
+    }
+
+    if (mode === "split" || mode === "both") {
+      const incomeType = document.querySelector(`[name="income_type_${i}"]`).value;
+
+      if (incomeType === "hourly") {
+        const hours = document.querySelector(`[name="hours_${i}"]`);
+        const rate = document.querySelector(`[name="rate_${i}"]`);
+        const hoursError = document.getElementById(`hours_${i}_error`);
+        const rateError = document.getElementById(`rate_${i}_error`);
+
+        if (!hours.value || parseFloat(hours.value) <= 0) {
+          hoursError.textContent = "Enter a valid number of hours.";
+          hours.classList.add("input-error");
+          valid = false;
+        } else {
+          hoursError.textContent = "";
+          hours.classList.remove("input-error");
+        }
+
+        if (!rate.value || parseFloat(rate.value) <= 0) {
+          rateError.textContent = "Enter a valid hourly rate.";
+          rate.classList.add("input-error");
+          valid = false;
+        } else {
+          rateError.textContent = "";
+          rate.classList.remove("input-error");
+        }
+
+      } else {
+        const salary = document.querySelector(`[name="salary_${i}"]`);
+        const salaryError = document.getElementById(`salary_${i}_error`);
+
+        if (!salary.value || parseFloat(salary.value) <= 0) {
+          salaryError.textContent = "Enter a valid annual salary.";
+          salary.classList.add("input-error");
+          valid = false;
+        } else {
+          salaryError.textContent = "";
+          salary.classList.remove("input-error");
+        }
+      }
+    }
+  }
+
+  if (!valid) e.preventDefault();
+});
 </script>
 {% endblock %}
