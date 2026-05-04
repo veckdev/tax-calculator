@@ -46,6 +46,12 @@ nav {
   gap: 0;
 }
 
+.steps-bar {
+  display: flex;
+  align-items: center;
+  margin-bottom: 40px;
+}
+
 .step {
   display: flex;
   align-items: center;
@@ -357,9 +363,11 @@ nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 32px;
+  padding: 20px 16px;
   border-bottom: 0.5px solid #1C1C1E;
-  max-width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .nav-left {
@@ -418,11 +426,15 @@ nav {
 
 .topfooter {
   border-top: 0.5px solid #1C1C1E;
-  padding: 24px 32px;
+  padding: 24px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-top: 48px;
+  max-width: 560px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
 }
 
 .footer-left p {
