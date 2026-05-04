@@ -110,67 +110,66 @@
 
   document.querySelector("form").addEventListener("submit", function (e) {
     let valid = true;
-    const numJobs = {{ num_jobs }
-  };
-  const mode = "{{ mode }}";
+    const numJobs = parseInt("{{ num_jobs }}");
+    const mode = "{{ mode }}";
 
-  for (let i = 1; i <= numJobs; i++) {
-    const company = document.querySelector(`[name="company_${i}"]`);
-    const companyError = document.getElementById(`company_${i}_error`);
+    for (let i = 1; i <= numJobs; i++) {
+      const company = document.querySelector('[name="company_' + i + '"]');
+      const companyError = document.getElementById('company_' + i + '_error');
 
-    if (!company.value.trim()) {
-      companyError.textContent = "Company name cannot be empty.";
-      company.classList.add("input-error");
-      valid = false;
-    } else {
-      companyError.textContent = "";
-      company.classList.remove("input-error");
-    }
-
-    if (mode === "split" || mode === "both") {
-      const incomeType = document.querySelector(`[name="income_type_${i}"]`).value;
-
-      if (incomeType === "hourly") {
-        const hours = document.querySelector(`[name="hours_${i}"]`);
-        const rate = document.querySelector(`[name="rate_${i}"]`);
-        const hoursError = document.getElementById(`hours_${i}_error`);
-        const rateError = document.getElementById(`rate_${i}_error`);
-
-        if (!hours.value || parseFloat(hours.value) <= 0) {
-          hoursError.textContent = "Enter a valid number of hours.";
-          hours.classList.add("input-error");
-          valid = false;
-        } else {
-          hoursError.textContent = "";
-          hours.classList.remove("input-error");
-        }
-
-        if (!rate.value || parseFloat(rate.value) <= 0) {
-          rateError.textContent = "Enter a valid hourly rate.";
-          rate.classList.add("input-error");
-          valid = false;
-        } else {
-          rateError.textContent = "";
-          rate.classList.remove("input-error");
-        }
-
+      if (!company.value.trim()) {
+        companyError.textContent = "Company name cannot be empty.";
+        company.classList.add("input-error");
+        valid = false;
       } else {
-        const salary = document.querySelector(`[name="salary_${i}"]`);
-        const salaryError = document.getElementById(`salary_${i}_error`);
+        companyError.textContent = "";
+        company.classList.remove("input-error");
+      }
 
-        if (!salary.value || parseFloat(salary.value) <= 0) {
-          salaryError.textContent = "Enter a valid annual salary.";
-          salary.classList.add("input-error");
-          valid = false;
+      if (mode === "split" || mode === "both") {
+        const incomeType = document.querySelector('[name="income_type_' + i + '"]').value;
+
+        if (incomeType === "hourly") {
+          const hours = document.querySelector('[name="hours_' + i + '"]');
+          const rate = document.querySelector('[name="rate_' + i + '"]');
+          const hoursError = document.getElementById('hours_' + i + '_error');
+          const rateError = document.getElementById('rate_' + i + '_error');
+
+          if (!hours.value || parseFloat(hours.value) <= 0) {
+            hoursError.textContent = "Enter a valid number of hours.";
+            hours.classList.add("input-error");
+            valid = false;
+          } else {
+            hoursError.textContent = "";
+            hours.classList.remove("input-error");
+          }
+
+          if (!rate.value || parseFloat(rate.value) <= 0) {
+            rateError.textContent = "Enter a valid hourly rate.";
+            rate.classList.add("input-error");
+            valid = false;
+          } else {
+            rateError.textContent = "";
+            rate.classList.remove("input-error");
+          }
+
         } else {
-          salaryError.textContent = "";
-          salary.classList.remove("input-error");
+          const salary = document.querySelector('[name="salary_' + i + '"]');
+          const salaryError = document.getElementById('salary_' + i + '_error');
+
+          if (!salary.value || parseFloat(salary.value) <= 0) {
+            salaryError.textContent = "Enter a valid annual salary.";
+            salary.classList.add("input-error");
+            valid = false;
+          } else {
+            salaryError.textContent = "";
+            salary.classList.remove("input-error");
+          }
         }
       }
     }
-  }
 
-  if (!valid) e.preventDefault();
-});
+    if (!valid) e.preventDefault();
+  });
 </script>
 {% endblock %}
